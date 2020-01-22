@@ -2,6 +2,7 @@ import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import DisplayHOC from "./DisplayHOC";
+import HistoryNav from "./HistoryNav";
 
 import "./App.css";
 
@@ -46,51 +47,5 @@ const CurrentTurnButtons = () => {
       </button>
       <button onClick={nextTurn}>Next Turn</button>
     </div>
-  );
-};
-
-const HistoryNav = () => {
-  const { turn, numTurns, tick, numTicks } = useSelector(({ game }) => game);
-  const dispatch = useDispatch();
-
-  const step = num => {
-    dispatch({ type: "seekTo", tick: tick + num });
-  };
-  const seek = e => {
-    let tick = parseInt(e.target.value, 0);
-    dispatch({ type: "seekTo", tick });
-  };
-  const toCurrentTurn = () => {
-    dispatch({ type: "toTurn", turn: numTurns });
-  };
-  const moveTurn = num => {
-    dispatch({ type: "toTurn", turn: turn + num });
-  };
-
-  return (
-    <>
-      <div className="navTop">
-        <div>
-          Turn {turn}, Tick {tick}/{numTicks}
-        </div>
-        <button onClick={toCurrentTurn}>X</button>
-      </div>
-
-      <div className="navContainer">
-        <button disabled={turn === 1} onClick={() => moveTurn(-1)}>
-          {"<<"}
-        </button>
-        <button onClick={() => step(-1)}>{"<"}</button>
-        <input
-          type="range"
-          min="0"
-          max={numTicks}
-          value={tick}
-          onChange={seek}
-        />
-        <button onClick={() => step(1)}>{">"}</button>
-        <button onClick={() => moveTurn(1)}>{">>"}</button>
-      </div>
-    </>
   );
 };
