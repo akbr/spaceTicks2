@@ -4,6 +4,8 @@ import { useSelector, useDispatch } from "react-redux";
 import DisplayHOC from "./DisplayHOC";
 import HistoryNav from "./HistoryNav";
 
+import { skip, nextTurn, toggleAnimation } from "../state/actions";
+
 import "./App.css";
 
 export default function App({ Display }) {
@@ -29,23 +31,18 @@ const BottomConsole = () => {
 const CurrentTurnButtons = () => {
   const { turn } = useSelector(({ game }) => game);
   const dispatch = useDispatch();
-  const nextTurn = () =>
-    dispatch({
-      type: "nextTurn"
-    });
-  const prevTurn = () =>
-    dispatch({
-      type: "toTurn",
-      turn: turn - 1
-    });
-
+  const toNextTurn = () => dispatch(nextTurn());
+  const toHistory = () => {
+    dispatch(skip(-1));
+    dispatch(toggleAnimation({ status: true, direction: -1 }));
+  };
   return (
     <div>
       <div style={{ textAlign: "center" }}>Turn {turn} (Current)</div>
-      <button disabled={turn === 1} onClick={prevTurn}>
+      <button disabled={turn === 1} onClick={toHistory}>
         Prev Turns
       </button>
-      <button onClick={nextTurn}>Next Turn</button>
+      <button onClick={toNextTurn}>Next Turn</button>
     </div>
   );
 };

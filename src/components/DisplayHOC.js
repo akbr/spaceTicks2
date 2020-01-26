@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import * as Hammer from "hammerjs";
 
+import { scroll } from "../state/actions";
+
 function initHammerEvents(el, dispatch) {
   const mc = new Hammer.Manager(el);
   mc.add(new Hammer.Pan({ threshold: 0 }));
@@ -15,7 +17,7 @@ function initHammerEvents(el, dispatch) {
     let dx = deltaX - last.deltaX;
     let dy = deltaY - last.deltaY;
     last = { deltaX, deltaY };
-    dispatch({ type: "scroll", dx, dy });
+    dispatch(scroll({ dx, dy }));
   });
 }
 

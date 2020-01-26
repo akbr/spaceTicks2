@@ -1,16 +1,26 @@
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
+import useInterval from "./useInterval";
+
+import { toTurn, seekTo, skip, toggleAnimation } from "../state/actions";
 
 export default function HistoryNav() {
   const { turn, numTurns, tick, numTicks } = useSelector(({ game }) => game);
+  const animStatus = useSelector(({ ui }) => ui.status);
+  const animDirection = useSelector(({ ui }) => ui.direction);
   const dispatch = useDispatch();
 
-  const step = num => dispatch({ type: "seekTo", tick: tick + num });
-  const seek = e =>
-    dispatch({ type: "seekTo", tick: parseInt(e.target.value, 0) });
-  const toCurrentTurn = () => dispatch({ type: "toTurn", turn: numTurns });
-  const moveTurn = num => dispatch({ type: "toTurn", turn: turn + num });
-
+  const step = num => dispatch(seekTo(tick + num));
+  const seek = e => dispatch(seekTo(parseInt(e.target.value, 0)));
+  const toCurrentTurn = () => dispatch(toTurn(numTurns));
+  const skipAction = direction => dispatch(skip(direction));
+  const toggleAnimationAction = bool => dispatch(toggleAnimation(bool));
+  useInterval(
+    () => {
+      dispatch(seekTo(tick + animDirection));
+    },
+    animStatus ? 16 : null
+  );
   return (
     <>
       <NavTop
@@ -20,7 +30,14 @@ export default function HistoryNav() {
         close={toCurrentTurn}
       />
       <Slider tick={tick} numTicks={numTicks} seek={seek} />
-      <Buttons turn={turn} step={step} moveTurn={moveTurn} />
+      <Buttons
+        turn={turn}
+        tick={tick}
+        step={step}
+        skip={skipAction}
+        toggleAnimation={toggleAnimationAction}
+        animStatus={animStatus}
+      />
     </>
   );
 }
@@ -47,14 +64,18 @@ const Slider = ({ tick, numTicks, seek }) => (
   </div>
 );
 
-const Buttons = ({ turn, step, moveTurn }) => (
+const Buttons = ({ step, skip, toggleAnimation, animStatus, turn, tick }) => (
   <div>
-    <button disabled={turn === 1} onClick={() => moveTurn(-1)}>
+    <button disabled={turn === 1 && tick === 0} onClick={() => skip(-1)}>
       {"<<"}
     </button>
     <button onClick={() => step(-1)}>{"<"}</button>
-    <button>{"Play"}</button>
+    <button
+      onClick={() => toggleAnimation({ status: !animStatus, direction: 1 })}
+    >
+      {animStatus ? "Pause" : "Play"}
+    </button>
     <button onClick={() => step(1)}>{">"}</button>
-    <button onClick={() => moveTurn(1)}>{">>"}</button>
+    <button onClick={() => skip(1)}>{">>"}</button>
   </div>
 );

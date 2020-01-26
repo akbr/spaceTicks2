@@ -22,6 +22,10 @@ export default function GameProvider(server, rules) {
         //console.timeEnd("timer");
       }
 
+      // Don't return more than max tick
+      if (isResolvedTurn) {
+        tick = tick > turnActions.length ? turnActions.length : tick;
+      }
       let initialStateRequested = tick === 0;
       state = initialStateRequested ? state : cache[turnNum].states[tick - 1];
 
