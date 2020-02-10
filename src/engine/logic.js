@@ -1,25 +1,32 @@
 // Rule interface
 const ensureArray = x =>
   x === undefined || x === false ? [] : Array.isArray(x) ? x : [x];
-const getActions = (rule, state) =>
-  rule.getActions
-    ? ensureArray(rule.getActions(state)).map(action => ({
-        ...action,
-        type: rule.type
-      }))
-    : [];
-const resolveRule = (state, actions, rule) =>
-  rule.getActions
-    ? actions.length
-      ? actions.reduce(rule.resolve, state)
-      : state
-    : rule.resolve(state);
+
+const handleGetActions = (rule, state) => {
+  let { type, getActions } = rule;
+  let actions = getActions ? getActions(state) : false;
+  if (actions === true) actions = {};
+  return ensureArray(actions).map(action => ({
+    ...action,
+    type
+  }));
+};
+
+const resolveRule = (state, actions, rule) => {
+  if (!rule.getActions) {
+    return rule.resolve(state);
+  }
+
+  if (rule.getActions) {
+    return actions.length ? actions.reduce(rule.resolve, state) : state;
+  }
+};
 
 // Running ticks and turns
 const resolveTick = (state, rules) => {
   let tickActions = [];
   rules.forEach(rule => {
-    let actions = getActions(rule, state);
+    let actions = handleGetActions(rule, state);
     tickActions.push(...actions);
     state = resolveRule(state, actions, rule);
   });
@@ -38,22 +45,21 @@ const resolveTickWithActions = (state, rules, tickActions = []) =>
   );
 
 export const resolveTurn = (state, numTicks = 1, rules) => {
-  let turnActions = [];
+  let ticks = [];
 
   while (numTicks > 0) {
     let [nextState, tickActions] = resolveTick(state, rules);
-    turnActions.push(tickActions);
+    ticks.push(tickActions);
     state = nextState;
     numTicks = numTicks - 1;
   }
 
-  return {
-    nextState: state,
-    turnActions
-  };
+  let nextState = state;
+
+  return [nextState, ticks];
 };
 
-export const getTickStates = (state, turnActions, rules) =>
+export const getTickStates = (state, turnActions, rules = []) =>
   turnActions.map(tickActions => {
     state = resolveTickWithActions(state, rules, tickActions);
     return state;

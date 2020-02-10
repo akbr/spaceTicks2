@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import * as Hammer from "hammerjs";
+import React, { useState } from "react";
+import { useGameService } from "../state/gameProvider";
 
-import { scroll } from "../state/actions";
+//import * as Hammer from "hammerjs";
+//import { scroll } from "../state/actions";
 
+/**
 function initHammerEvents(el, dispatch) {
   const mc = new Hammer.Manager(el);
   mc.add(new Hammer.Pan({ threshold: 0 }));
@@ -20,25 +21,29 @@ function initHammerEvents(el, dispatch) {
     dispatch(scroll({ dx, dy }));
   });
 }
+**/
 
 export default ({ Display }) => {
-  let dispatch = useDispatch();
+  /**
   let el = useRef(null);
 
   useEffect(() => {
     initHammerEvents(el.current, dispatch);
   }, []);
+  **/
+
+  let [{ value, context }] = useGameService();
+  let [storedGameState, storeGameState] = useState();
+
+  // Don't show a loading value when there is SOMETHING to show
+  let state = value === "loading" ? storedGameState : context.state;
+  state !== storedGameState && storeGameState(state);
+
+  if (!state) return <div>Display waiting...</div>;
 
   return (
-    <div className="display camera" ref={el}>
-      <Wrap Display={Display} />
+    <div className="display camera">
+      <Display state={state} />
     </div>
   );
-};
-
-const Wrap = ({ Display }) => {
-  let gameState = useSelector(state => state.game.state);
-  let cameraState = useSelector(state => state.camera);
-
-  return <Display gameState={gameState} camera={cameraState} />;
 };

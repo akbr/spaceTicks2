@@ -1,48 +1,60 @@
 import React from "react";
-import { useSelector, useDispatch } from "react-redux";
+
+import { useGameService } from "../state/gameProvider";
 
 import DisplayHOC from "./DisplayHOC";
 import HistoryNav from "./HistoryNav";
-
-import { skip, nextTurn, toggleAnimation } from "../state/actions";
 
 import "./App.css";
 
 export default function App({ Display }) {
   return (
-    <div className="wrapper">
+    <Wrapper>
       <DisplayHOC Display={Display} />
-      <BottomConsole />
-    </div>
+      <BottomConsoleWrapper>
+        <BottomConsole />
+      </BottomConsoleWrapper>
+    </Wrapper>
   );
 }
 
-const BottomConsole = () => {
-  let isCurrentTurn = useSelector(({ game }) => game.turn === game.numTurns);
+const Wrapper = ({ children }) => <div className="wrapper">{children}</div>;
 
-  return (
-    <div className="bottomConsole">
-      {!isCurrentTurn && <HistoryNav />}
-      {isCurrentTurn && <CurrentTurnButtons />}
-    </div>
+const BottomConsoleWrapper = ({ children }) => (
+  <div className="bottomConsole">{children}</div>
+);
+
+const BottomConsole = () => {
+  let [{ value, context }, send] = useGameService();
+
+  return value === "current" ? (
+    <CurrentNav context={context} send={send} />
+  ) : value === "history" ? (
+    <HistoryNav context={context} send={send} />
+  ) : (
+    "Loading..."
   );
 };
 
-const CurrentTurnButtons = () => {
-  const { turn } = useSelector(({ game }) => game);
-  const dispatch = useDispatch();
-  const toNextTurn = () => dispatch(nextTurn());
-  const toHistory = () => {
-    dispatch(skip(-1));
-    dispatch(toggleAnimation({ status: true, direction: -1 }));
-  };
+const CurrentNav = ({ context, send }) => {
+  let { turn } = context;
+
   return (
-    <div>
+    <>
       <div style={{ textAlign: "center" }}>Turn {turn} (Current)</div>
-      <button disabled={turn === 1} onClick={toHistory}>
+      <button
+        disabled={turn === 1}
+        onClick={() => send("step", { direction: -1 })}
+      >
         Prev Turns
       </button>
-      <button onClick={toNextTurn}>Next Turn</button>
-    </div>
+      <button
+        onClick={() => {
+          send("next", { numTicks: 10 });
+        }}
+      >
+        Next Turn
+      </button>
+    </>
   );
 };

@@ -1,27 +1,28 @@
-import Server from "./engine/Server";
-import GameProvider from "./engine/GameProvider";
-
-import createStore from "./state/createStore";
-import { Provider } from "react-redux";
-
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import ReactDOM from "react-dom";
+
+import { interpret } from "xstate";
+
+import Server from "./engine/Server";
+import ServerBridge from "./engine/ServerBridge";
+import gameMachine from "./state/gameMachine";
+import { createGameProvider } from "./state/gameProvider";
 
 import App from "./components/App";
 
 export default function init({ rules, initialState, Display }, rootElement) {
-  // Create server and gameProvider
   const server = Server(rules, initialState);
-  const gameProvider = GameProvider(server, rules);
+  const serverBridge = ServerBridge(server, rules, 50);
+  const gameService = interpret(gameMachine(serverBridge));
+  const GameProvider = createGameProvider(gameService);
 
-  // Create redux store, with access to gameProvider
-  const store = createStore(gameProvider);
+  gameService.start();
+  gameService.send("get");
 
-  // Kick of react+redux
   ReactDOM.render(
-    <Provider store={store}>
+    <GameProvider>
       <App Display={Display} />
-    </Provider>,
+    </GameProvider>,
     rootElement
   );
 }
