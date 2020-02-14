@@ -1,3 +1,5 @@
+import { produce } from "immer";
+
 // Rule interface
 const ensureArray = x =>
   x === undefined || x === false ? [] : Array.isArray(x) ? x : [x];
@@ -13,12 +15,18 @@ const handleGetActions = (rule, state) => {
 };
 
 const resolveRule = (state, actions, rule) => {
-  if (!rule.getActions) {
-    return rule.resolve(state);
-  }
-
+  // !! This is the ONLY function in which rule.resolve is called.
+  // It guards aggresively against "undefined" returns, because rule.resolve might return undefined as a developer convenience when using immer.
+  // This allows for (1) mutative runs by the server, and (2) immerized runs where produce is used at a higher level.
   if (rule.getActions) {
-    return actions.length ? actions.reduce(rule.resolve, state) : state;
+    return actions.length
+      ? actions.reduce(
+          (state, action) => rule.resolve(state, action) || state,
+          state
+        )
+      : state;
+  } else {
+    return rule.resolve(state) || state;
   }
 };
 
@@ -33,7 +41,7 @@ const resolveTick = (state, rules) => {
   return [state, tickActions];
 };
 
-const resolveTickWithActions = (state, rules, tickActions = []) =>
+const resolveTickWithPredefinedActions = (state, rules, tickActions) =>
   rules.reduce(
     (state, rule) =>
       resolveRule(
@@ -59,8 +67,10 @@ export const resolveTurn = (state, numTicks = 1, rules) => {
   return [nextState, ticks];
 };
 
-export const getTickStates = (state, turnActions, rules = []) =>
-  turnActions.map(tickActions => {
-    state = resolveTickWithActions(state, rules, tickActions);
+const nextStateWithImmer = produce(resolveTickWithPredefinedActions);
+export const getTickStates = (state, turnActions, rules = []) => {
+  return turnActions.map(tickActions => {
+    state = nextStateWithImmer(state, rules, tickActions);
     return state;
   });
+};
