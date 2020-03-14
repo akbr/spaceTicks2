@@ -149,16 +149,17 @@ export default serverBridge => {
   return Machine(gameMachine, { actions, guards });
 };
 
-export const deriveContext = memoizeOne(context => {
+export const createDigest = state => {
+  let { value, context } = state;
   let { turn, tick } = context;
   let turnData = selectTurn(context);
-  let state = selectFrame(context);
+  let frame = selectFrame(context);
   if (!turnData) return {};
-  return {
+  state.digest = {
     turn,
     tick,
     numTicks: turnData.ticks ? turnData.ticks.length : 0,
-    state,
+    state: frame,
     actions: tick === 0 ? false : turnData.ticks[tick - 1]
   };
-});
+};

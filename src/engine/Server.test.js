@@ -1,22 +1,6 @@
 import Server from "./Server";
-import { getTickStates } from "./logic";
-
-export const initialState = { count: 0 };
-export const rules = [
-  {
-    type: "add",
-    resolve: state => {
-      state.count += 1;
-    }
-  },
-  {
-    type: "boost",
-    getActions: state => state.count === 10,
-    resolve: state => {
-      state.count += 100;
-    }
-  }
-];
+import getTickStates from "./getTickStates";
+import { rules, initialState } from "./Server.testRules.js";
 
 test("it initializes", () => {
   const server = Server(rules, initialState);
@@ -49,7 +33,9 @@ test("basic nexts and state reconstitution", () => {
   const server = Server(rules, initialState);
   const numTicks = 11;
 
-  expect(server({ type: "next", numTicks })).toEqual({
+  expect(server({ type: "next", numTicks })).toEqual({ currentTurn: 2 });
+
+  expect(server({ type: "get", turn: 1 })).toEqual({
     turn: 1,
     initialState: { count: 0 },
     ticks: [[], [], [], [], [], [], [], [], [], [{ type: "boost" }], []]

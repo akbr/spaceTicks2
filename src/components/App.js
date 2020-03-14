@@ -25,19 +25,19 @@ const BottomConsoleWrapper = ({ children }) => (
 );
 
 const BottomConsole = () => {
-  let [{ value, context }, send] = useGameService();
+  let [{ value, digest }, send] = useGameService();
 
   return value === "current" ? (
-    <CurrentNav context={context} send={send} />
+    <CurrentNav digest={digest} send={send} />
   ) : value === "history" ? (
-    <HistoryNav context={context} send={send} />
+    <HistoryNav digest={digest} send={send} />
   ) : (
     "Loading..."
   );
 };
 
-const CurrentNav = ({ context, send }) => {
-  let { turn } = context;
+const CurrentNav = ({ digest, send }) => {
+  let { turn } = digest;
 
   return (
     <>

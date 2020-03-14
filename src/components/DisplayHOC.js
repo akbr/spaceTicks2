@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef } from "react";
 import { useGameService } from "../state/gameProvider";
 
 //import * as Hammer from "hammerjs";
@@ -23,6 +23,13 @@ function initHammerEvents(el, dispatch) {
 }
 **/
 
+const useLastStateIfNeeded = (value, digest) => {
+  let stateContainer = useRef();
+  let state = value === "loading" ? stateContainer.current : digest.state;
+  if (state !== stateContainer.current) stateContainer.current = state;
+  return state;
+};
+
 export default ({ Display }) => {
   /**
   let el = useRef(null);
@@ -32,12 +39,8 @@ export default ({ Display }) => {
   }, []);
   **/
 
-  let [{ value, context }] = useGameService();
-  let [storedGameState, storeGameState] = useState();
-
-  // Don't show a loading value when there is SOMETHING to show
-  let state = value === "loading" ? storedGameState : context.state;
-  state !== storedGameState && storeGameState(state);
+  let [{ value, digest }] = useGameService();
+  let state = useLastStateIfNeeded(value, digest);
 
   if (!state) return <div>Display waiting...</div>;
 

@@ -19,13 +19,18 @@ export default function Server(rules = [], initialState = {}) {
     },
     next: ({ numTicks = 1 }) => {
       let latestEntry = db[db.length - 1];
-      let stateCopy = deepCopy(latestEntry.initialState); // simulate pulling from db so safe for mutation
-      let [nextState, ticks] = resolveTurn(stateCopy, numTicks, rules);
+      let { initialState } = latestEntry;
+      let initialStateCopy = deepCopy(initialState); // make safe for mutation
+      let [nextTurnState, ticks] = resolveTurn(
+        initialStateCopy,
+        numTicks,
+        rules
+      );
       let updatedEntry = { ...latestEntry, ticks };
-      let nextEntry = { initialState: nextState, ticks: false };
+      let nextEntry = { initialState: nextTurnState, ticks: false };
       db.pop();
       db.push(updatedEntry, nextEntry);
-      return api.get({ turn: db.length - 1 });
+      return { currentTurn: db.length };
     }
   };
 

@@ -1,11 +1,11 @@
 import React from "react";
 
-export default function HistoryNav({ context, send }) {
+export default function HistoryNav({ digest, send }) {
   return (
     <>
-      <NavTop {...context} send={send} />
-      <Slider {...context} send={send} />
-      <Buttons {...context} send={send} />
+      <NavTop {...digest} send={send} />
+      <Slider {...digest} send={send} />
+      <Buttons {...digest} send={send} />
     </>
   );
 }

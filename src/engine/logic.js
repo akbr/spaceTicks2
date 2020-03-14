@@ -1,10 +1,41 @@
-import { produce } from "immer";
+// SERVER PATH ... => [nextTurnState, ticks]
+// WARNING! Potentially mutative for state (depending on how rule.resolves are defined).
+export const resolveTurn = (state, numTicks = 1, rules) => {
+  let ticks = [];
+
+  while (numTicks > 0) {
+    let [nextState, actions] = resolveTick(state, rules);
+    ticks.push(actions);
+    state = nextState;
+    numTicks = numTicks - 1;
+  }
+
+  let nextTurnState = state;
+
+  return [nextTurnState, ticks];
+};
+
+// CLIENT PATH ... => nextTickState
+// Should be wrapped by immer of rule.resolves are not pure.
+export const getTickState = (state, rules, actions) => {
+  let nextTickState = rules.reduce(
+    (state, rule) =>
+      resolveRule(
+        state,
+        rule,
+        actions.filter(action => action.type === rule.type)
+      ),
+    state
+  );
+
+  return nextTickState;
+};
 
 // Rule interface
 const ensureArray = x =>
   x === undefined || x === false ? [] : Array.isArray(x) ? x : [x];
 
-const handleGetActions = (rule, state) => {
+const getActions = (rule, state) => {
   let { type, getActions } = rule;
   let actions = getActions ? getActions(state) : false;
   if (actions === true) actions = {};
@@ -14,63 +45,35 @@ const handleGetActions = (rule, state) => {
   }));
 };
 
-const resolveRule = (state, actions, rule) => {
-  // !! This is the ONLY function in which rule.resolve is called.
+const resolveRule = (state, rule, actions) => {
+  // !! This is the ONLY function in which rule.resolve is called -- the central kernel of engine logic.
   // It guards aggresively against "undefined" returns, because rule.resolve might return undefined as a developer convenience when using immer.
-  // This allows for (1) mutative runs by the server, and (2) immerized runs where produce is used at a higher level.
-  if (rule.getActions) {
-    return actions.length
-      ? actions.reduce(
-          (state, action) => rule.resolve(state, action) || state,
-          state
-        )
-      : state;
-  } else {
+  // This allows for (1) mutative runs by the server, *AND* (2) immerized runs where produce is used at a higher level.
+
+  // If a rule does not specify a "getActions" property, it is assumed to resolve on each tick.
+  if (!rule.getActions) {
     return rule.resolve(state) || state;
   }
-};
 
-// Running ticks and turns
-const resolveTick = (state, rules) => {
-  let tickActions = [];
-  rules.forEach(rule => {
-    let actions = handleGetActions(rule, state);
-    tickActions.push(...actions);
-    state = resolveRule(state, actions, rule);
-  });
-  return [state, tickActions];
-};
-
-const resolveTickWithPredefinedActions = (state, rules, tickActions) =>
-  rules.reduce(
-    (state, rule) =>
-      resolveRule(
-        state,
-        tickActions.filter(action => action.type === rule.type),
-        rule
-      ),
-    state
-  );
-
-export const resolveTurn = (state, numTicks = 1, rules) => {
-  let ticks = [];
-
-  while (numTicks > 0) {
-    let [nextState, tickActions] = resolveTick(state, rules);
-    ticks.push(tickActions);
-    state = nextState;
-    numTicks = numTicks - 1;
+  // If a rule does specify a "getActions" property, it is assumed to resolve on an opt-in basis only.
+  if (rule.getActions) {
+    if (actions && actions.length) {
+      return actions.reduce(
+        (state, action) => rule.resolve(state, action) || state,
+        state
+      );
+    } else {
+      return state;
+    }
   }
-
-  let nextState = state;
-
-  return [nextState, ticks];
 };
 
-const nextStateWithImmer = produce(resolveTickWithPredefinedActions);
-export const getTickStates = (state, turnActions, rules = []) => {
-  return turnActions.map(tickActions => {
-    state = nextStateWithImmer(state, rules, tickActions);
-    return state;
+const resolveTick = (state, rules) => {
+  let actions = [];
+  rules.forEach(rule => {
+    let ruleActions = getActions(rule, state);
+    actions.push(...ruleActions);
+    state = resolveRule(state, rule, ruleActions);
   });
+  return [state, actions];
 };
