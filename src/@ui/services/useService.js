@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { on } from "flyd";
 
-export default ([state$, input]) => {
+export default ([state$, send]) => {
   const [value, setState] = useState(state$());
   useEffect(() => {
     const sub = on(x => setState(x), state$);
@@ -9,5 +9,5 @@ export default ([state$, input]) => {
       sub.end();
     };
   }, [state$]);
-  return [value, input];
+  return [value, send];
 };

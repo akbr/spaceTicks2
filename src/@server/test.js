@@ -1,6 +1,6 @@
 import Server from "./Server";
-import getTickStates from "./getTickStates";
 import { rules, initialState } from "./Server.testRules.js";
+import getTickStates from "@logic/getTickStates";
 
 test("it initializes", () => {
   const server = Server(rules, initialState);

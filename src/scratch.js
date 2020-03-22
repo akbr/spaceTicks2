@@ -1,38 +1,28 @@
-const fetch = serverBridge => (send, receive) => {
-  let log = { req: undefined, timeout: undefined };
+//import * as Hammer from "hammerjs";
+//import { scroll } from "../state/actions";
 
-  const reset = req => {
-    log.req = req;
-    log.timeout && clearTimeout(log.timeout);
-    log.timeout = setTimeout(() => {
-      send({ type: "waiting", req });
-    }, 8);
-  };
+/**
+function initHammerEvents(el, dispatch) {
+  const mc = new Hammer.Manager(el);
+  mc.add(new Hammer.Pan({ threshold: 0 }));
 
-  const handleGet = (req, options) => {
-    let res = serverBridge(req, options);
-    res.then(data => {
-      if (log.req === req) {
-        send({
-          type: "update",
-          data
-        });
-        clearTimeout(log.timeout);
-      }
-    });
-  };
-
-  receive(function doReceive(req) {
-    reset(req);
-    if (req.type === "get") handleGet(req);
-    if (req.type === "next") {
-      let res = serverBridge(req);
-      res.then(({ currentTurn }) => {
-        doReceive({ type: "get", turn: currentTurn - 1 }, { cache: false });
-      });
-    }
+  let last;
+  mc.on("panstart", function() {
+    last = { deltaX: 0, deltaY: 0 };
   });
-};
 
-// View
-export const createView = state => {};
+  mc.on("panmove", function({ deltaX, deltaY }) {
+    let dx = deltaX - last.deltaX;
+    let dy = deltaY - last.deltaY;
+    last = { deltaX, deltaY };
+    dispatch(scroll({ dx, dy }));
+  });
+}
+
+  /**
+  let el = useRef(null);
+
+  useEffect(() => {
+    initHammerEvents(el.current, dispatch);
+  }, []);
+  **/

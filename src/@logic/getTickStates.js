@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { getTickState } from "./logic";
+import { getTickState } from ".";
 
 const getTickStateWithImmer = produce(getTickState);
 export default (state, turnActions, rules = []) =>

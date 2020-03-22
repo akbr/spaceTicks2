@@ -1,4 +1,4 @@
-import { resolveTurn } from "./logic";
+import { resolveTurn } from "@logic";
 
 const deepCopy = x => JSON.parse(JSON.stringify(x));
 
@@ -7,6 +7,7 @@ export default function Server(rules = [], initialState = {}) {
   const api = {
     get: ({ turn = db.length }) => {
       if (turn > db.length) turn = db.length;
+      if (turn < 1) turn = 1;
       let entry = db[turn - 1];
       return entry
         ? {
@@ -30,7 +31,7 @@ export default function Server(rules = [], initialState = {}) {
       let nextEntry = { initialState: nextTurnState, ticks: false };
       db.pop();
       db.push(updatedEntry, nextEntry);
-      return { currentTurn: db.length };
+      return api.get({ turn: db.length - 1 });
     }
   };
 
