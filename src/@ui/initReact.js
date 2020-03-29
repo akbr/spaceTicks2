@@ -4,12 +4,12 @@ import { createProvider } from "@ui/services/gameService";
 
 import App from "./components/App";
 
-export default gameService => {
+export default (gameService, Display) => {
   const GameServiceProvider = createProvider(gameService);
 
   ReactDOM.render(
     <GameServiceProvider>
-      <App />
+      <App Display={Display} />
     </GameServiceProvider>,
     document.getElementById("root")
   );

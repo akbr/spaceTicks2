@@ -1,5 +1,5 @@
-import Server from "./Server";
-import { rules, initialState } from "./Server.testRules.js";
+import Server from ".";
+import { rules, initialState } from "./testRules.js";
 import getTickStates from "@logic/getTickStates";
 
 test("it initializes", () => {

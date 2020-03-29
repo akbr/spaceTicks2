@@ -1,20 +1,26 @@
+import { BehaviorSubject } from "rxjs";
 import { interpret } from "xstate";
-import { stream } from "flyd";
 
-import createFetchCallback from "./fetchServiceCallback";
-import machine, { computeContext } from "./gameMachine";
+import createFetchService from "@services/fetchService/";
+import { getKey, shouldCache, onResponse } from "./fetchServiceSettings";
+
+import gameMachine, { computeContext } from "./gameMachine";
 
 export default (server, rules) => {
-  let state$ = stream();
+  const gameState$ = new BehaviorSubject({});
 
-  let fetchCallback = createFetchCallback(server, rules);
-  let service = interpret(machine(fetchCallback)).start();
-  let { send } = service;
-
-  service.onTransition(state => {
-    let { value, context } = state;
-    state$({ value, state: computeContext(context) });
+  const fetchService = createFetchService(server, {
+    getKey,
+    shouldCache,
+    onResponse: onResponse(rules)
   });
 
-  return [state$, send];
+  const gameService = interpret(gameMachine(fetchService)).start();
+
+  gameService.onTransition(state => {
+    let { value, context } = state;
+    gameState$.next({ value, ...computeContext(context) });
+  });
+
+  return [gameState$, gameService.send];
 };

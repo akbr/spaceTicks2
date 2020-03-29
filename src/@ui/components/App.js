@@ -1,7 +1,7 @@
 import React from "react";
 import styled from "styled-components";
 
-import Display from "./Display";
+import DisplayHOC from "./DisplayHOC";
 import TurnControls from "./TurnControls";
 
 const Wrapper = styled.div`
@@ -19,9 +19,9 @@ const Console = styled.div`
   text-align: center;
 `;
 
-export default () => (
+export default ({ Display }) => (
   <Wrapper>
-    <Display />
+    <DisplayHOC Display={Display} />
     <Console>
       <TurnControls />
     </Console>

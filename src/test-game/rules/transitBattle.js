@@ -1,4 +1,4 @@
-import { distanceBetween } from "../../utils/2dMath";
+import { distanceBetween } from "../utils/2dMath";
 import { moveSpeed } from "./settings";
 
 export const type = "transitBattle";

@@ -26,3 +26,15 @@ function initHammerEvents(el, dispatch) {
     initHammerEvents(el.current, dispatch);
   }, []);
   **/
+
+let state = {
+  systems: [],
+  fleets: []
+};
+
+let meta = {
+  rules: "id",
+  players: []
+};
+
+let orders = [];

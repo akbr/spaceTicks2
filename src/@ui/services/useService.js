@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
-import { on } from "flyd";
 
 export default ([state$, send]) => {
-  const [value, setState] = useState(state$());
+  const [value, setState] = useState(state$.getValue());
   useEffect(() => {
-    const sub = on(x => setState(x), state$);
-    return () => {
-      sub.end();
-    };
+    const sub = state$.subscribe(x => setState(x));
+    return () => sub.unsubscribe();
   }, [state$]);
   return [value, send];
 };

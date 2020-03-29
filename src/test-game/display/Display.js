@@ -1,7 +1,7 @@
 import React from "react";
 
-export default function SVGDisplay({ state, camera = { x: 0, y: 0 } }) {
-  let { systems, transit } = state;
+export default function SVGDisplay({ frame, events }, camera = { x: 0, y: 0 }) {
+  let { systems, transit } = frame;
   let { x, y } = camera;
 
   return (

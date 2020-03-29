@@ -14,8 +14,7 @@ const Input = styled.input`
 `;
 
 const TurnControls = () => {
-  let [{ value, state }, send] = useGameService();
-  let { selected, tick, ticks } = state;
+  let [{ value, selected, tick, ticks }, send] = useGameService();
 
   return (
     <>

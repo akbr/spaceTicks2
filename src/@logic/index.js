@@ -1,7 +1,10 @@
 // SERVER PATH ... => [nextTurnState, ticks]
-// WARNING! Potentially mutative for state (depending on how rule.resolves are defined).
 export const resolveTurn = (state, numTicks = 1, rules) => {
   let ticks = [];
+
+  // Potentially mutative for state (depending on how rule.resolves are defined).
+  // (this may come out later)
+  state = JSON.parse(JSON.stringify(state));
 
   while (numTicks > 0) {
     let [nextState, actions] = resolveTick(state, rules);
@@ -29,6 +32,16 @@ export const getTickState = (state, rules, actions) => {
   );
 
   return nextTickState;
+};
+
+const resolveTick = (state, rules) => {
+  let actions = [];
+  rules.forEach(rule => {
+    let ruleActions = getActions(rule, state);
+    actions.push(...ruleActions);
+    state = resolveRule(state, rule, ruleActions);
+  });
+  return [state, actions];
 };
 
 // Rule interface
@@ -66,14 +79,4 @@ const resolveRule = (state, rule, actions) => {
       return state;
     }
   }
-};
-
-const resolveTick = (state, rules) => {
-  let actions = [];
-  rules.forEach(rule => {
-    let ruleActions = getActions(rule, state);
-    actions.push(...ruleActions);
-    state = resolveRule(state, rule, ruleActions);
-  });
-  return [state, actions];
 };

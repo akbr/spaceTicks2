@@ -1,5 +1,5 @@
 import { moveSpeed } from "./settings";
-import { travel } from "../../utils/2dMath";
+import { travel } from "../utils/2dMath";
 
 export const type = "moveTransit";
 

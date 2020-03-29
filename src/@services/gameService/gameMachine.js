@@ -1,5 +1,5 @@
-import { Machine, spawn, assign, actions, send } from "xstate";
-import getKey from "./reqToKey";
+import { Machine, spawn, assign, actions } from "xstate";
+import { getKey } from "./fetchServiceSettings";
 
 const { raise } = actions;
 
@@ -30,8 +30,12 @@ const logReq = assign((ctx, e) => {
     selected
   };
 });
-const makeReq = send(ctx => ctx.req, { to: "fetch" });
-const requestAndSort = { actions: [logReq, makeReq], target: "sort" };
+
+const makeReq = fetchSend => ({ req }) => fetchSend(req);
+const requestAndSort = fetchSend => ({
+  actions: [logReq, makeReq(fetchSend)],
+  target: "sort"
+});
 
 const logRes = assign({
   data: (_, { res }) => res,
@@ -40,16 +44,6 @@ const logRes = assign({
   selected: (_, { res }) => res.turn,
   req: false
 });
-
-const sort = {
-  on: {
-    "": [
-      { cond: ctx => ctx.req, target: "waiting" },
-      { cond: ctx => ctx.data.ticks, target: "history" },
-      { target: "current" }
-    ]
-  }
-};
 
 const clampSeek = ({ ticks }, targetTick) =>
   targetTick < 0 ? 0 : targetTick > ticks.length ? ticks.length : targetTick;
@@ -77,7 +71,6 @@ const skipFwd = {
 };
 const skipTicks = { actions: jumpTick };
 
-const resetTick = assign({ tick: 0 });
 const setInitialTick = assign({
   tick: ({ selected, prevSelected, data, tick }) => {
     if (prevSelected === "next") return 0;
@@ -94,12 +87,13 @@ const animate = (_, { by = 1 }) => send => {
   return () => clearInterval(id);
 };
 const animationEnded = ({ tick, data }) => tick === data.ticks.length;
-const resetTickIfAtEnd = assign({
-  tick: ({ tick, data }) => (tick === data.ticks.length ? 0 : tick)
-});
 
-export default fetchCallback =>
-  Machine({
+export default fetchService => {
+  const [fetchOut$, fetchSend] = fetchService;
+  const initFetch = assign({ fetch: () => spawn(fetchOut$) });
+  const doRequest = requestAndSort(fetchSend);
+
+  return Machine({
     initial: "init",
     context: {
       req: false,
@@ -110,22 +104,23 @@ export default fetchCallback =>
     },
     states: {
       init: {
-        entry: [
-          assign({ fetch: () => spawn(fetchCallback, "fetch") }),
-          raise("select")
-        ]
+        entry: [initFetch, raise("select")]
       },
-      sort,
-      waiting: {
+      sort: {
         on: {
-          skip: [skipFwd, skipBack]
+          "": [
+            { cond: ctx => ctx.req, target: "waiting" },
+            { cond: ctx => ctx.data.ticks, target: "history" },
+            { target: "current" }
+          ]
         }
+      },
+      waiting: {
+        on: { skip: [skipFwd, skipBack] }
       },
       current: {
-        entry: resetTick,
-        on: {
-          skip: [skipBack]
-        }
+        entry: assign({ tick: 0 }),
+        on: { skip: [skipBack] }
       },
       history: {
         initial: "idle",
@@ -133,19 +128,28 @@ export default fetchCallback =>
           idle: {
             entry: setInitialTick,
             on: {
+              "": {
+                cond: ({ prevSelected }) => prevSelected === "next",
+                target: "animating"
+              },
               seek: { actions: seek },
               skip: [skipFwd, skipBack, skipTicks],
               togglePlay: "animating"
             }
           },
           animating: {
-            entry: resetTickIfAtEnd,
+            entry: assign({
+              tick: ({ tick, data }) => (tick === data.ticks.length ? 0 : tick)
+            }),
             invoke: { src: animate },
             on: {
               "": { cond: animationEnded, target: "idle" },
               _seek: { actions: seek },
               seek: { actions: seek, target: "idle" },
-              //skip: { actions: skip, target: "idle" },
+              skip: [skipFwd, skipBack, skipTicks].map(x => ({
+                ...x,
+                target: "idle"
+              })),
               togglePlay: "idle"
             },
             exit: assign({ prevSelected: ctx => ctx.selected })
@@ -154,8 +158,8 @@ export default fetchCallback =>
       }
     },
     on: {
-      select: requestAndSort,
-      next: requestAndSort,
+      select: doRequest,
+      next: doRequest,
       update: [
         {
           cond: (ctx, e) => ctx.req === e.req,
@@ -165,13 +169,12 @@ export default fetchCallback =>
       ]
     }
   });
+};
 
-export const computeContext = ({ data, tick, req, selected }) => {
-  let state = {
-    selected,
-    req,
-    tick
-  };
+export const computeContext = ctx => {
+  let { data, tick, req, selected } = ctx;
+
+  let state = { selected, req, tick };
 
   if (data) {
     let { turn, initialState, states, ticks } = data;

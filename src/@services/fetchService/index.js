@@ -1,10 +1,10 @@
-import { stream } from "flyd";
+import { BehaviorSubject } from "rxjs";
 
 export default (server, { getKey, shouldCache, onResponse }) => {
   let awaiting = {};
   let cache = {};
 
-  const output$ = stream();
+  const output$ = new BehaviorSubject({ type: "init" });
 
   const updateCache = (req, res) => {
     let resKey = shouldCache(req, res);
@@ -18,12 +18,12 @@ export default (server, { getKey, shouldCache, onResponse }) => {
       delete awaiting[reqKey];
       res = onResponse(res);
       updateCache(req, res);
-      output$({ req, res });
+      output$.next({ type: "update", req, res });
     };
 
     let cachedRes = cache[reqKey];
     if (cachedRes) {
-      output$({ req, res: cachedRes });
+      output$.next({ type: "update", req, res: cachedRes });
       return;
     }
 
