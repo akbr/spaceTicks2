@@ -1,9 +1,9 @@
-import Server from "@server";
+import LocalHost from "@hosts/local";
 import createGameService from "@services/gameService";
 import initReact from "@ui/initReact";
 
 export default (rules, initialState, Display) => {
-  const server = Server(rules, initialState);
-  const gameStore = createGameService(server, rules);
+  const host = LocalHost(rules, initialState);
+  const gameStore = createGameService(host, rules);
   initReact(gameStore, Display);
 };

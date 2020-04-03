@@ -32,9 +32,25 @@ let state = {
   fleets: []
 };
 
-let meta = {
-  rules: "id",
-  players: []
+let orders = [];
+
+let envelope = {
+  player: 1,
+  game: "test"
 };
 
-let orders = [];
+let preppedState = applyOrders(state, orders);
+let nextState = resolveTurn(state, numTicks);
+
+let order = {
+  type: "move",
+  from: 1,
+  to: 2,
+  num: 12
+};
+
+let move = {
+  validate: (order, state, orders, { player }) => {},
+
+  resolve: (order, state) => {}
+};

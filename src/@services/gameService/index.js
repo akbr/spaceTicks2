@@ -6,10 +6,10 @@ import { getKey, shouldCache, onResponse } from "./fetchServiceSettings";
 
 import gameMachine, { computeContext } from "./gameMachine";
 
-export default (server, rules) => {
+export default (host, rules) => {
   const gameState$ = new BehaviorSubject({});
 
-  const fetchService = createFetchService(server, {
+  const fetchService = createFetchService(host, {
     getKey,
     shouldCache,
     onResponse: onResponse(rules)
@@ -17,7 +17,7 @@ export default (server, rules) => {
 
   const gameService = interpret(gameMachine(fetchService)).start();
 
-  gameService.onTransition(state => {
+  gameService.onTransition((state) => {
     let { value, context } = state;
     gameState$.next({ value, ...computeContext(context) });
   });

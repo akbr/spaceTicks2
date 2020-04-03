@@ -3,11 +3,11 @@ import { moveSpeed } from "./settings";
 
 export const type = "transitBattle";
 
-export function getActions({ transit }) {
+export function prep({ transit }) {
   return getBattleActions(transit);
 }
 
-export function resolve(state, action) {
+export function apply(state, action) {
   let { transit } = state;
   let { battle } = action;
   let [fleet1, fleet2] = battle;

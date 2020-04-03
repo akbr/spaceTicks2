@@ -9,6 +9,7 @@ const DefaultDisplay = (frame, events) => (
 
 const DisplayHOC = ({ Display }) => {
   let [{ frame, events }] = useGameService();
+  if (!frame) return null;
   let View = Display || DefaultDisplay;
   return <View frame={frame} events={events} />;
 };

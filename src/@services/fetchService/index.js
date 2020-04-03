@@ -11,10 +11,10 @@ export default (server, { getKey, shouldCache, onResponse }) => {
     if (resKey) cache[resKey] = res;
   };
 
-  const send = req => {
+  const send = (req) => {
     let reqKey = getKey(req);
 
-    const procResponse = res => {
+    const procResponse = (res) => {
       delete awaiting[reqKey];
       res = onResponse(res);
       updateCache(req, res);

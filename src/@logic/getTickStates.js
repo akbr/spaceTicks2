@@ -1,7 +1,7 @@
 import { produce } from "immer";
-import { getTickState } from ".";
+import { applyActions } from "./core";
 
-const getTickStateWithImmer = produce(getTickState);
+const getTickStateWithImmer = produce(applyActions);
 
 export default (state, turnActions, rules = []) =>
   turnActions.map(tickActions => {
