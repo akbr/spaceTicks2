@@ -1,3 +1,3 @@
 export { default as rules } from "./rules";
-export { default as initialState } from "./initialState";
+export { default as createInitialState } from "./createInitialState";
 export { default as Display } from "./display/Display";

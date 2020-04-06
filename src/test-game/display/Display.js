@@ -1,12 +1,11 @@
 import React from "react";
 
-export default function SVGDisplay({ frame, events }, camera = { x: 0, y: 0 }) {
+export default function SVGDisplay({ frame, events }) {
   let { systems, transit } = frame;
-  let { x, y } = camera;
 
   return (
     <svg height="100%" width="100%">
-      <g transform={`translate(${x}, ${y})`}>
+      <g>
         {systems.map(svgSystem)}
         {transit.map(svgTransit)}
       </g>

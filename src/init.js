@@ -1,9 +1,11 @@
-import LocalHost from "@hosts/local";
+import LocalServerBridge from "@ui/LocalServerBridge";
 import createGameService from "@services/gameService";
 import initReact from "@ui/initReact";
 
-export default (rules, initialState, Display) => {
-  const host = LocalHost(rules, initialState);
-  const gameStore = createGameService(host, rules);
+import { createInitialState, rules, Display } from "test-game";
+
+export default () => {
+  const serverBridge = LocalServerBridge(createInitialState, rules);
+  const gameStore = createGameService(serverBridge, rules);
   initReact(gameStore, Display);
 };

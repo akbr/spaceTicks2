@@ -1,13 +1,129 @@
 import { Machine, spawn, assign, actions } from "xstate";
-import { getKey } from "./fetchServiceSettings";
-
+import { getKey } from "@services/serverService";
 const { raise } = actions;
 
+export default (serverService) => {
+  // IMPORTS
+  const [serverOut$, serverSend] = serverService;
+  const makeServerReq = {
+    actions: [logReq, ({ req }) => serverSend(req)],
+    target: "sort"
+  };
+
+  // CONTEXT
+  const context = {
+    envelope: undefined,
+    req: false,
+    selected: undefined,
+    prevSelected: undefined,
+    data: undefined,
+    tick: 0
+  };
+
+  // STATES
+  const init = {
+    entry: assign({ server: () => spawn(serverOut$) }),
+    on: {
+      "": { target: "awaitingEnvelope" }
+    }
+  };
+  const awaitingEnvelope = {};
+  const sort = {
+    on: {
+      "": [
+        { cond: ({ req }) => req, target: "waiting" },
+        { cond: ({ data }) => data.ticks, target: "history" },
+        { target: "current" }
+      ]
+    }
+  };
+  const waiting = {
+    on: { skip: [skipFwd, skipBack] }
+  };
+  const current = {
+    entry: assign({ tick: 0 }),
+    on: { skip: [skipBack] }
+  };
+  const history = {
+    initial: "idle",
+    states: {
+      idle: {
+        entry: setInitialTick,
+        on: {
+          "": {
+            cond: ({ prevSelected }) => prevSelected === "next",
+            target: "animating"
+          },
+          seek: { actions: seek },
+          skip: [skipFwd, skipBack, skipTicks],
+          togglePlay: "animating"
+        }
+      },
+      animating: {
+        entry: assign({
+          tick: ({ tick, data }) => (tick === data.ticks.length ? 0 : tick)
+        }),
+        invoke: { src: animate },
+        on: {
+          "": { cond: animationEnded, target: "idle" },
+          _seek: { actions: seek },
+          seek: { actions: seek, target: "idle" },
+          skip: [skipFwd, skipBack, skipTicks].map((x) => ({
+            ...x,
+            target: "idle"
+          })),
+          togglePlay: "idle"
+        },
+        exit: assign({ prevSelected: (ctx) => ctx.selected })
+      }
+    }
+  };
+
+  // GLOBAL ONs
+  const setEnvelope = {
+    actions: [
+      assign({
+        envelope: (ctx, e) => e.envelope
+      }),
+      raise("select")
+    ]
+  };
+  const select = makeServerReq;
+  const next = makeServerReq;
+  const update = [
+    {
+      cond: (ctx, e) => ctx.req === e.req,
+      actions: logRes,
+      target: "sort"
+    }
+  ];
+
+  return Machine({
+    initial: "init",
+    context,
+    states: {
+      init, //*
+      awaitingEnvelope,
+      sort, //*
+      waiting,
+      current,
+      history
+    },
+    on: {
+      setEnvelope,
+      select,
+      next,
+      update
+    }
+  });
+};
+
 const createServerReq = (ctx, e) => {
+  let { envelope } = ctx;
   let { type } = e;
   if (type === "select") {
     let { turn, dir } = e;
-    let req = { type: "get" };
+    let req = { type: "get", ...envelope };
     if (turn) {
       req.turn = turn;
     } else if (dir !== undefined && typeof ctx.selected === "number") {
@@ -15,7 +131,7 @@ const createServerReq = (ctx, e) => {
     }
     return req;
   } else if (type === "next") {
-    return e;
+    return { ...e, ...envelope };
   }
 };
 
@@ -29,12 +145,6 @@ const logReq = assign((ctx, e) => {
     prevSelected: ctx.selected,
     selected
   };
-});
-
-const makeReq = fetchSend => ({ req }) => fetchSend(req);
-const requestAndSort = fetchSend => ({
-  actions: [logReq, makeReq(fetchSend)],
-  target: "sort"
 });
 
 const logRes = assign({
@@ -81,97 +191,14 @@ const setInitialTick = assign({
   }
 });
 
-const animate = (_, { by = 1 }) => send => {
+const animate = (_, { by = 1 }) => (send) => {
   send({ type: "_seek", by });
   const id = setInterval(() => send({ type: "_seek", by }), 200);
   return () => clearInterval(id);
 };
 const animationEnded = ({ tick, data }) => tick === data.ticks.length;
 
-export default fetchService => {
-  const [fetchOut$, fetchSend] = fetchService;
-  const initFetch = assign({ fetch: () => spawn(fetchOut$) });
-  const doRequest = requestAndSort(fetchSend);
-
-  return Machine({
-    initial: "init",
-    context: {
-      req: false,
-      selected: undefined,
-      prevSelected: undefined,
-      data: undefined,
-      tick: 0
-    },
-    states: {
-      init: {
-        entry: [initFetch, raise("select")]
-      },
-      sort: {
-        on: {
-          "": [
-            { cond: ctx => ctx.req, target: "waiting" },
-            { cond: ctx => ctx.data.ticks, target: "history" },
-            { target: "current" }
-          ]
-        }
-      },
-      waiting: {
-        on: { skip: [skipFwd, skipBack] }
-      },
-      current: {
-        entry: assign({ tick: 0 }),
-        on: { skip: [skipBack] }
-      },
-      history: {
-        initial: "idle",
-        states: {
-          idle: {
-            entry: setInitialTick,
-            on: {
-              "": {
-                cond: ({ prevSelected }) => prevSelected === "next",
-                target: "animating"
-              },
-              seek: { actions: seek },
-              skip: [skipFwd, skipBack, skipTicks],
-              togglePlay: "animating"
-            }
-          },
-          animating: {
-            entry: assign({
-              tick: ({ tick, data }) => (tick === data.ticks.length ? 0 : tick)
-            }),
-            invoke: { src: animate },
-            on: {
-              "": { cond: animationEnded, target: "idle" },
-              _seek: { actions: seek },
-              seek: { actions: seek, target: "idle" },
-              skip: [skipFwd, skipBack, skipTicks].map(x => ({
-                ...x,
-                target: "idle"
-              })),
-              togglePlay: "idle"
-            },
-            exit: assign({ prevSelected: ctx => ctx.selected })
-          }
-        }
-      }
-    },
-    on: {
-      select: doRequest,
-      next: doRequest,
-      update: [
-        {
-          cond: (ctx, e) => ctx.req === e.req,
-          actions: logRes,
-          target: "sort"
-        }
-      ]
-    }
-  });
-};
-
-export const computeContext = ctx => {
+export const computeContext = (ctx) => {
   let { data, tick, req, selected } = ctx;
 
   let state = { selected, req, tick };
